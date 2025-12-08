@@ -1,7 +1,20 @@
 ###############################################################################
 # FRESH CLEAN GITIGNORE — STRIPE-Analysis
 ###############################################################################
+# --- DIII-D ---
+DIII-D/**
+!DIII-D/simulations/
+!DIII-D/simulations/**/*
 
+# --- iter ---
+iter/**
+!iter/simulations/
+!iter/simulations/**/*
+
+# --- west ---
+west/**
+!west/simulations/
+!west/simulations/**/*
 #---------------------------------------
 # Simulation / Data (large files)
 #---------------------------------------
