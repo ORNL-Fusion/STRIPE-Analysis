@@ -1,147 +1,125 @@
 clear all
 close all
+clc
 
+% Data source: 'adf11' (direct scd/acd files) or 'nc' (prebuilt NetCDF).
+source_mode = 'adf11';
+
+scd_file = 'scd89_ne.dat';
+acd_file = 'acd89_ne.dat';
 filename = 'ADAS_Rates_Ne.nc';
 
-IonizationData.Temp = ncread(filename,'gridTemperature_Ionization');
-IonizationData.Temp = 10.^IonizationData.Temp;
-IonizationData.Density = ncread(filename,'gridDensity_Ionization');
-IonizationData.Density = 10.^IonizationData.Density;
-IonizationData.RateCoeff = ncread(filename,'IonizationRateCoeff');
-IonizationData.RateCoeff = 10.^IonizationData.RateCoeff;
+if strcmpi(source_mode, 'adf11')
+    [Te_s, ne_s, scd_log10_cgs] = ADF11s(scd_file);
+    [Te_a, ne_a, acd_log10_cgs] = ADF11a(acd_file);
+    IonizationData.Temp = 10.^Te_s(:);
+    IonizationData.Density = 10.^ne_s(:) * 1e6; % cm^-3 -> m^-3
+    RecombinationData.Temp = 10.^Te_a(:);
+    RecombinationData.Density = 10.^ne_a(:) * 1e6; % cm^-3 -> m^-3
+    IonizationData.RateCoeff = 10.^scd_log10_cgs ./ 1e6;
+    RecombinationData.RateCoeff = 10.^acd_log10_cgs ./ 1e6;
+else
+    % Read temperature/density grids (stored as log10 values in the NetCDF).
+    IonizationData.Temp = 10.^ncread(filename, 'gridTemperature_Ionization');
+    IonizationData.Density = 10.^ncread(filename, 'gridDensity_Ionization');
+    RecombinationData.Temp = 10.^ncread(filename, 'gridTemperature_Recombination');
+    RecombinationData.Density = 10.^ncread(filename, pick_var(filename, ...
+        {'gridDensity_Recombine', 'gridDensity_Recombination'}));
+    % Support both legacy and newer variable names.
+    IonizationData.RateCoeff = 10.^ncread(filename, pick_var(filename, ...
+        {'IonizationRateCoeff_log10_SI', 'IonizationRateCoeff'}));
+    RecombinationData.RateCoeff = 10.^ncread(filename, pick_var(filename, ...
+        {'RecombinationRateCoeff_log10_SI', 'RecombinationRateCoeff'}));
+end
 
-RecombinationData.Temp = ncread(filename,'gridTemperature_Recombination');
+% Plasma conditions for equilibrium charge-state distribution.
+Te_eV = 50;
+ne_m3 = 1e18;
+assert_in_range(Te_eV, 'Te_eV', IonizationData.Temp);
+assert_in_range(ne_m3, 'ne_m3', IonizationData.Density);
+assert_in_range(Te_eV, 'Te_eV', RecombinationData.Temp);
+assert_in_range(ne_m3, 'ne_m3', RecombinationData.Density);
 
-RecombinationData.Density = ncread(filename,'gridDensity_Recombination');
-RecombinationData.Temp = 10.^RecombinationData.Temp;
-
-RecombinationData.Density = 10.^RecombinationData.Density;
-RecombinationData.RateCoeff = ncread(filename,'RecombinationRateCoeff');
-RecombinationData.RateCoeff = 10.^RecombinationData.RateCoeff;
-nT = 10;
-nP = 1e5;
-T = 1972; %linspace(10,50,nT);
-n = 4.54595e19;
-tion5s = zeros(1,10);
-trecs = zeros(1,10);
-
+% Ne charge states: q = 0..10 (11 states), ionization transitions q=0..9.
 Zmax = 10;
-S = zeros(nT,Zmax+1);
-a = zeros(nT,Zmax+1);
-b = zeros(Zmax+1,1);
-b(end) = 1;
-for i=1:Zmax+1
-    Z = i-1;
-    if Z< (Zmax-1)
-        S(:,i) = nP*interpn(IonizationData.Density,IonizationData.Temp,IonizationData.RateCoeff(:,:,Z+1),n,T,'linear',0);
-    end
-    if Z>0
-        a(:,i) = nP*interpn(RecombinationData.Density,RecombinationData.Temp,RecombinationData.RateCoeff(:,:,Z),n,T,'linear',0);
-    end
+nStates = Zmax + 1;
+
+% Eq. (3)-(4) coronal solution using rate coefficients at fixed (ne, Te).
+% S_i: ionization i -> i+1 for i = 0..Zmax-1
+% alpha_{i+1}: recombination i+1 -> i for i = 0..Zmax-1
+S_coeff = zeros(Zmax, 1);
+alpha_coeff = zeros(Zmax, 1);
+for i = 0:(Zmax - 1)
+    S_coeff(i + 1) = interpn(IonizationData.Density, IonizationData.Temp, ...
+        IonizationData.RateCoeff(:, :, i + 1), ne_m3, Te_eV, 'linear', 0);
+    alpha_coeff(i + 1) = interpn(RecombinationData.Density, RecombinationData.Temp, ...
+        RecombinationData.RateCoeff(:, :, i + 1), ne_m3, Te_eV, 'linear', 0);
 end
 
-A = zeros(Zmax+1,Zmax+1);
-conc = zeros(Zmax+1,nT);
-
-for i=1:nT
-    
-    A(1,1) = 1;%-S(i,1);
-    A(1,2) = 0;%a(i,2);
-    for j=2:Zmax
-        A(j,j-1) = S(i,j-1);
-        A(j,j) = -(S(i,j)+a(i,j));
-        A(j,j+1) = a(i,j+1);
-    end
-    A(Zmax+1,end-1) = S(i,Zmax-1);
-    A(Zmax+1,end) = -(S(i,Zmax)+a(i,Zmax));
-%     A(Zmax+1,:) = ones(1,Zmax);
-    
-    b(1) = 1 ;%-a(i,Zmax);
-    conc1 = A\b;
+% Eq. (3): n_z = (prod_{i=0}^{z-1} S_i/alpha_{i+1}) * n_0
+prod_terms = zeros(Zmax, 1);
+running_prod = 1;
+for z = 1:Zmax
+    running_prod = running_prod * (S_coeff(z) / max(alpha_coeff(z), realmin));
+    prod_terms(z) = running_prod;
 end
-conc1 = abs(conc1);
-conc1 = conc1/sum(conc1);
 
-plot(0:Zmax,conc1,'--o','LineWidth',2)
-title({'Equilibrium Charge State Distribution','of Ne in 15eV 6e18m^{-3} electron Plasma','dt=1e-6s nP=1e5 nT=1e4'})
-xlabel('Charge State [#]') % x-axis label
-ylabel('Distribution Fraction') % y-axis label
-set(gca,'fontsize',16)
-axis([0 Zmax 0 0.8])
-% legend('neutral','1','2')
-hold on
-m = 184;
-T = 20;
-ti0 = 4;
-vTh = sqrt(2*ti0*1.602e-19/m/1.66e-27);
-n = 1e19;
-tion = 1/(n*interpn(IonizationData.Density,IonizationData.Temp,IonizationData.RateCoeff(:,:,i),n,T,'linear',0));
+% Eq. (4): n_0 = N / (1 + sum_{z=1}^{Z} prod_{i=0}^{z-1} S_i/alpha_{i+1})
+N_total = 1.0;
+n0 = N_total / (1 + sum(prod_terms));
+conc = zeros(nStates, 1);
+conc(1) = n0;
+for z = 1:Zmax
+    conc(z + 1) = prod_terms(z) * n0;
+end
+conc = conc / sum(conc);
 
-mfp = vTh*tion;
+figure('Color', 'w');
+plot(0:Zmax, conc, '--o', 'LineWidth', 1.8, 'MarkerSize', 4);
+title({ ...
+    sprintf('Equilibrium Charge State Distribution of Ne at T_e = %.2f eV', Te_eV), ...
+    sprintf('n_e = %.2e m^{-3}', ne_m3) ...
+    });
+xlabel('Charge State q');
+ylabel('Distribution Fraction');
+set(gca, 'FontSize', 14);
+grid on;
+box on;
+xlim([0 Zmax]);
 
-% file = '/Users/tyounkin/Docs/elder/d3d/tungsten/tests/values_1e5p_1e4t_1en6';
-% fileID = fopen(file,'r');
-% formatSpec = '%f';
-% A = fscanf(fileID,formatSpec)
-% hold on
-% plot(0:1:19,A,':*','LineWidth',1)
-% legend('Equilibrium Values','GITR')
-% % x = ncread(file,'x');
-% % y = ncread(file,'y');
-% % z = ncread(file,'z');
-% % vx = ncread(file,'vx');
-% % vy = ncread(file,'vy');
-% % vz = ncread(file,'vz');
-% % charge = ncread(file,'charge');
-% % weight = ncread(file,'weight');
-% % sizeArray = size(x);
-% % nP = sizeArray(2);
-% % figure(2)
-% % 
-% % h1=histogram(charge)
-% % vals=h1.Values;
-% % vals = vals./sum(vals);
-% % figure(1)
-% % hold on
-% % plot(h1.BinEdges(1:end-1)+0.5,vals,'-o')
-% % legend('Equilibrium Values','GITR')
-% 
-% nP = 1e4;
-% nT = 1e4;
-% dt = 1e-6;
-% charge = zeros(1,nP);
-% Ss = zeros(1,nP);
-% aa = zeros(1,nP);
-% S = 1e-5*S;
-% a = 1e-5*a;
-% tic
-% for i=1:nT
-%     Ss = 0*Ss;
-%     aa = 0*aa;
-%     
-% Ss = interp1(linspace(0,Zmax-1,Zmax),S,charge,'linear',0);
-% tion = 1./(n*Ss);
-% Pion = exp(-dt./tion);
-% randIon = rand(1,nP);
-% whereIonize = find(randIon <= (1-Pion));
-% charge(whereIonize) = charge(whereIonize) + 1;
-% 
-% charge1 = find(charge > 0);
-% aa(charge1) = interp1(linspace(1,Zmax,Zmax),a,charge(charge1)+1,'linear',0);
-% 
-% trec = 1./(n*aa);
-% Prec = exp(-dt./trec);
-% randRec = rand(1,nP);
-% whereRec = find((randRec <= (1-Prec)) & (charge > 0));
-% charge(whereRec) = charge(whereRec) - 1;
-% 
-% end
-% toc
-% figure(100)
-% h1=histogram(charge)
-% vals=h1.Values;
-% vals = vals./sum(vals);
-% 
-% figure(1)
-% hold on
-% plot(h1.BinEdges(1:end-1)+0.5,vals,'-o')
+% Single-energy ionization mean free path example.
+mass_amu = 20.1797;
+Ti_imp_eV = 36;
+Te_mfp_eV = 4;
+ne_mfp_m3 = 1e17;
+impurity_charge = 0; % Ne^0 -> Ne^1+
+assert_in_range(Te_mfp_eV, 'Te_mfp_eV', IonizationData.Temp);
+assert_in_range(ne_mfp_m3, 'ne_mfp_m3', IonizationData.Density);
+
+v_imp = sqrt(2 * Ti_imp_eV * 1.602176634e-19 / (mass_amu * 1.66053906660e-27));
+k_ion_mfp = interpn(IonizationData.Density, IonizationData.Temp, ...
+    IonizationData.RateCoeff(:, :, impurity_charge + 1), ne_mfp_m3, Te_mfp_eV, 'linear', 0);
+tion = 1 / (ne_mfp_m3 * k_ion_mfp);
+mfp = v_imp * tion;
+
+fprintf('Ne^%d ionization at Te=%.2f eV, ne=%.2e m^-3\n', impurity_charge, Te_mfp_eV, ne_mfp_m3);
+fprintf('k_ion = %.6e m^3/s, tion = %.6e s, mfp = %.6e m\n', k_ion_mfp, tion, mfp);
+
+function v = pick_var(ncfile, candidates)
+    info = ncinfo(ncfile);
+    names = {info.Variables.Name};
+    for i = 1:numel(candidates)
+        if any(strcmp(names, candidates{i}))
+            v = candidates{i};
+            return;
+        end
+    end
+    error('None of the candidate variables were found in %s.', ncfile);
+end
+
+function assert_in_range(x, name, grid)
+    gmin = min(grid);
+    gmax = max(grid);
+    assert(x >= gmin && x <= gmax, ...
+        '%s=%.6g is outside data range [%.6g, %.6g].', name, x, gmin, gmax);
+end

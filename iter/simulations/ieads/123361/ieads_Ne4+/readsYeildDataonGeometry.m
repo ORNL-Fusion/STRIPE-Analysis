@@ -2,13 +2,13 @@ close all;
 clear all;
 clc;
 
-data=readmatrix('Targets.txt');
-yields_data=readmatrix('yields_ITER_Ne2.csv');
+data=readmatrix('Targets_Ne4+.txt');
+yields_data=readmatrix('yields_Ne4+.csv');
 potential_data=data(:,1);
-ne_data=data(:,2);
+ne_data=data(:,11);
 te_data=data(:,3);
 v_data=data(:,5);
-ero_data=[0;yields_data(:,2)].*ne_data.*v_data;
+ero_data=[0;yields_data(:,4)].*ne_data.*v_data;
 
 
 if (exist('x1') == 0)
@@ -29,7 +29,7 @@ X = [transpose(x1(subset)),transpose(x2(subset)),transpose(x3(subset))];
 Y = [transpose(y1(subset)),transpose(y2(subset)),transpose(y3(subset))];
 Z = [transpose(z1(subset)),transpose(z2(subset)),transpose(z3(subset))];
 %patch(transpose(X(surface,:)),transpose(Y(surface,:)),transpose(Z(surface,:)),impacts(surface),'FaceAlpha',.3)
-patch(transpose(X),transpose(Y),transpose(Z),potential_data,'FaceAlpha',1,'EdgeAlpha', 0.3)%,impacts(surface)
+patch(transpose(X),transpose(Y),transpose(Z),[0;yields_data(:,4)],'FaceAlpha',1,'EdgeAlpha', 0.3)%,impacts(surface)
 title('Yields')
 colorbar('eastoutside')
 xlabel('X [m]')

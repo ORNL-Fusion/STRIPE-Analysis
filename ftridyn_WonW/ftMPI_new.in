@@ -1,0 +1,57 @@
+# --- FTRIDYN run: D beam on W target ---
+
+beam W
+target W
+
+# number of ion histories per (E,A,R)
+nH 20000
+
+# ------------------------
+# Energy scan (eV)
+# ------------------------
+energy_start 1
+energy_end 10000
+nE 500
+Escale log
+
+# ------------------------
+# Angle scan (deg)
+# ------------------------
+angle_start 0.0001
+angle_end 89.9
+nA 1
+
+# ------------------------
+# Surface roughness
+# ------------------------
+roughness_start 1.0
+roughness_end 1.0
+nR 1
+
+# ------------------------
+# Sputtered energy distribution
+# ------------------------
+nEdist 100
+maxEdist 20.0
+
+# ------------------------
+# Reflected energy distribution
+# ------------------------
+nEdist_ref 120
+maxEdist_ref 10000
+
+# ------------------------
+# Angular (direction cosine) distributions
+# ------------------------
+nAdist 50
+
+# ------------------------
+# Execution
+# ------------------------
+use_exe 1
+exe /home/78k/myRepos/GITR_legacy/ftridyn/shell_Ftridyn.sh
+
+# ------------------------
+# Material / interaction table
+# ------------------------
+data /home/78k/myRepos/fractal-tridyn/utils/table1.txt

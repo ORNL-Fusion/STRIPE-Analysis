@@ -1,9 +1,10 @@
+#!/usr/bin/env python3
 import os
 import subprocess
 import impacts
 import shutil
 import numpy as np
-target = np.loadtxt('Targets_Ne1+.txt', dtype='float',skiprows=1,delimiter=',')
+target = np.loadtxt('Targets_D+.txt', dtype='float',skiprows=1,delimiter=',')
 print(target,target.shape)
 
 for i in range(0, 21159):
@@ -18,10 +19,11 @@ for i in range(0, 21159):
         bt = target[i,7]
         bz = target[i,8]
         theta = target[i,9]
+        ni = target[i,10]
         #impacts.d3d_case_C(charge = j, Tee=te, Tii = ti, n=ne,btot = btot,br = br, bt = bt, bz = bz, sheath_factor = 1.0)
         #impacts.west_thermal_O(charge = j, Tee=te, Tii=ti, n=ne,btot=btot,theta=theta, sheath_factor=1.0)
         #impacts.west_rf_O(surface_potential = surface_potential, charge = 7, Tee=te, Tii = ti, n=ne,btot = btot,theta=theta, sheath_factor = 1.0)
-        impacts.iter_case_D(surface_potential = surface_potential, charge = 1, Tee=te, Tii = ti, n=ne,btot = btot,theta=theta, sheath_factor = 1.0)
+        impacts.iter_case_D(surface_potential = surface_potential, charge = 1, Tee=te, Tii = ti, n=ni,btot = btot,theta=theta, sheath_factor = 1.0)
         #impacts.iter_case_Ne(surface_potential = surface_potential, charge = j, Tee=te, Tii = ti, n=ne,btot = btot,theta=theta, sheath_factor = 1.0)
         #subprocess.run("/global/cfs/cdirs/m77/atul/gitr/build/./GITR", shell=True, check=True)        
         subprocess.run("/home/cloud/myRepos/GITR/build/GITR", shell=True, check=True)

@@ -102,13 +102,15 @@ def west_thermal_O(charge = 1, Tee=4, Tii = 3, n=5e18,btot = 1,theta=0, sheath_f
                 nP = 1e3, nT = 2e4, dt = 1.0e-9,height_factor = 5*sheath_factor,
                 filename = "input/gitrInput.cfg")
 
-def iter_case_D(surface_potential = 1000, charge = 1, Tee=4, Tii = 3, n=5e18,btot = 1,theta=0, sheath_factor = 1.0):
-      setup_case(Zi = 1, amu_i = 2, charge_i = 1,
+def iter_case_D(surface_potential = 1000, charge = 1, Tee=4, Tii = 3, n=5e18,btot = 1,theta=0, sheath_factor = 1.0):    
+      phi_angle = theta;
+      print('phi_angle',phi_angle)
+      setup_case(Zi = 1, amu_i = 2, charge_i = charge,
                  Zb = 1, amu_b = 2, charge_b = 1,
                  Ti = Tii, ni = n,
                  Te = Tee, ne = n,
                  Bmag = btot, phi = 180/np.pi*(np.pi-theta),
-                 nP = 1e4, nT = 2e4, dt = 5.0e-9,height_factor = 5*sheath_factor,
+                 nP = 1e4, nT = 5e4, dt = 1.0e-9,height_factor = 5*sheath_factor,
                  filename = "input/gitrInput.cfg")
  
       with io.open('input/gitrGeometry.cfg') as f:
@@ -128,12 +130,14 @@ def iter_case_D(surface_potential = 1000, charge = 1, Tee=4, Tii = 3, n=5e18,bto
 
 
 def iter_case_Ne(surface_potential = 1000, charge = 1, Tee=4, Tii = 3, n=5e18,btot = 1,theta=0, sheath_factor = 1.0):
-     setup_case(Zi = 10, amu_i = 20.18, charge_i = 10,
+     phi_angle=theta;
+     print('phi_angle',phi_angle)
+     setup_case(Zi = 10, amu_i = 20.18, charge_i = charge,
                 Zb = 1, amu_b = 2, charge_b = 1,
                 Ti = Tii, ni = n,
                 Te = Tee, ne = n,
                 Bmag = btot, phi = 180/np.pi*(np.pi-theta),
-                nP = 1e4, nT = 2e4, dt = 5.0e-9,height_factor = 5*sheath_factor,
+                nP = 1e4, nT = 5e4, dt = 1.0e-9,height_factor = 5*sheath_factor,
                 filename = "input/gitrInput.cfg")
  
      with io.open('input/gitrGeometry.cfg') as f:

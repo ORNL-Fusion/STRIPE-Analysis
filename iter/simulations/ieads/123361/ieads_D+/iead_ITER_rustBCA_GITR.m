@@ -11,7 +11,7 @@ narray = [1e16, 1e17, 5e17, 1e18, 5e18, 1e19]
 Varray = [30, 160, 290, 420, 550, 680, 810, 940, 1070, 1200]
 
 
-file = 'RustBCA_NeonW.nc';
+file = 'ftridyn_DonW.nc';
 ncid = netcdf.open(file,'NC_NOWRITE');
 [dimname, nE] = netcdf.inqDim(ncid,0);
 [dimname, nA] = netcdf.inqDim(ncid,1);
@@ -65,7 +65,7 @@ Y0=interpn(energy,angle,spyld',ee,aa);
 figure; plot(energy, this_spyld)
 
 
-A = readmatrix('Targets_Ne1+.txt','NumHeaderLines',1);
+A = readmatrix('Targets_D+.txt','NumHeaderLines',1);
 % r_mean = readmatrix('Centroid.csv');
          ne =A(:,2);
          te = A(:,3);
@@ -109,7 +109,7 @@ end
 yields(isnan(yields))=0;
 
 
-writematrix(yields,"yields_Ne1+.csv");
+writematrix(yields,"yields_D+.csv");
 figure
 plot(yields(:,1),'lineWidth',2)
 % title({'ne'})
@@ -117,7 +117,7 @@ xlabel('location #') % x-axis label
 ylabel('Yield') % y-axis label
 set(gca,'fontsize',16)
 
-save('ieads_ITER_Ne+.mat')
+save('ieads_ITER_D+.mat')
 return
 
 Dflux = vp.*ne.*tand(angle_imp);

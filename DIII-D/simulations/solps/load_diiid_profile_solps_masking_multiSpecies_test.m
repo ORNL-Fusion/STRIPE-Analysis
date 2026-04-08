@@ -13,7 +13,7 @@ close all;
 clear all;
 
 %% 1) Load data
-load('extrapolated_data_multiSpecies_196154_test.mat');  
+load('extrapolated_data_multiSpecies_200882_test.mat');  
 % expects: X, Y, val_ne, val_Te, val_gradTi, val_gradTe, val_vr, val_vz, val_vt, g
 
 %% 2) Replace NaNs with zeros

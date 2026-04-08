@@ -30,7 +30,7 @@ X = [transpose(x1(subset)),transpose(x2(subset)),transpose(x3(subset))];
 Y = [transpose(y1(subset)),transpose(y2(subset)),transpose(y3(subset))];
 Z = [transpose(z1(subset)),transpose(z2(subset)),transpose(z3(subset))];
 %patch(transpose(X(surface,:)),transpose(Y(surface,:)),transpose(Z(surface,:)),impacts(surface),'FaceAlpha',.3)
-patch(transpose(X),transpose(Y),transpose(Z),potential_data,'FaceAlpha',1,'EdgeAlpha', 0.3)%,impacts(surface)
+patch(transpose(X),transpose(Y),transpose(Z),[0;yields_data(:,5)],'FaceAlpha',1,'EdgeAlpha', 0.3)%,impacts(surface)
 title('Yields')
 colorbar('eastoutside')
 xlabel('X [m]')

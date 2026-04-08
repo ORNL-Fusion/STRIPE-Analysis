@@ -1,145 +1,136 @@
+%% Cleaned / corrected oxygen charge-state equilibrium script
 clear all
 close all
+clc
 
 filename = 'ADAS_Rates_O.nc';
 
-IonizationData.Temp = ncread(filename,'gridTemperature_Ionization');
-IonizationData.Temp = 10.^IonizationData.Temp;
-IonizationData.Density = ncread(filename,'gridDensity_Ionization');
-IonizationData.Density = 10.^IonizationData.Density;
-IonizationData.RateCoeff = ncread(filename,'IonizationRateCoeff');
-IonizationData.RateCoeff = 10.^IonizationData.RateCoeff;
+% --- Read ADAS grids & rates (log10 stored -> convert to linear) ---
+IonizationData.Temp    = 10.^ncread(filename,'gridTemperature_Ionization');   % [eV]
+IonizationData.Density = 10.^ncread(filename,'gridDensity_Ionization');       % [m^-3]
+IonizationData.RateCoeff= 10.^ncread(filename, pick_var(filename, ...
+    {'IonizationRateCoeff_log10_SI','IonizationRateCoeff'}));                 % [m^3/s]
 
-RecombinationData.Temp = ncread(filename,'gridTemperature_Recombination');
+RecombinationData.Temp    = 10.^ncread(filename,'gridTemperature_Recombination');
+RecombinationData.Density = 10.^ncread(filename, pick_var(filename, ...
+    {'gridDensity_Recombine','gridDensity_Recombination'}));
+RecombinationData.RateCoeff = 10.^ncread(filename, pick_var(filename, ...
+    {'RecombinationRateCoeff_log10_SI','RecombinationRateCoeff'}));
 
-RecombinationData.Density = ncread(filename,'gridDensity_Recombination');
-RecombinationData.Temp = 10.^RecombinationData.Temp;
+% --- user / physics inputs ---
+% Temperatures to evaluate (eV). You can supply a vector, e.g. [10 15 20].
+T_eV = 15;          % eV (scalar or vector)
+n_e  = 6e18;        % electron density [m^-3]
+Zmax = 8;           % maximum nuclear charge for O -> 0..8
 
-RecombinationData.Density = 10.^RecombinationData.Density;
-RecombinationData.RateCoeff = ncread(filename,'RecombinationRateCoeff');
-RecombinationData.RateCoeff = 10.^RecombinationData.RateCoeff;
-nT = 10;
-T = 15;%linspace(0,100,nT);
-n = 6e18;
-tions = zeros(1,10);
-trecs = zeros(1,10);
+% Ensure T_eV is a column vector for indexing
+T_eV = T_eV(:);
+nT = numel(T_eV);
+assert_in_range(n_e, 'n_e', IonizationData.Density);
+assert_in_range(n_e, 'n_e', RecombinationData.Density);
+for it = 1:nT
+    assert_in_range(T_eV(it), sprintf('T_eV(%d)', it), IonizationData.Temp);
+    assert_in_range(T_eV(it), sprintf('T_eV(%d)', it), RecombinationData.Temp);
+end
 
-Zmax = 8;
-S = zeros(nT,Zmax+1);
-a = zeros(nT,Zmax+1);
-b = zeros(Zmax+1,1);
-b(end) = 1;
-for i=1:Zmax+1
-    Z = i-1;
-    if Z< (Zmax-1)
-        S(:,i) = 1e5*interpn(IonizationData.Density,IonizationData.Temp,IonizationData.RateCoeff(:,:,Z+1),n,T,'linear',0);
+% Pre-allocate S (ionization) and a (recombination)
+% S: nT x (Zmax+1) rates (for ionization from charge Z -> Z+1)
+% a: nT x (Zmax+1) rates (for recombination from Z -> Z-1)
+S = zeros(nT, Zmax+1);
+a = zeros(nT, Zmax+1);
+
+% Interpolate ADAS tables for each Z
+% Note: ADAS indexing: RateCoeff(:,:,k) should correspond to process for charge index k (check your file)
+for ii = 1:(Zmax+1)
+    Z = ii-1;
+    % Ionization rate S for Z -> Z+1 is stored in IonizationData.RateCoeff(:,:,Z+1)
+    if Z <= Zmax-1
+        S(:,ii) = interpn(IonizationData.Density, IonizationData.Temp, ...
+                          squeeze(IonizationData.RateCoeff(:,:,ii)), n_e, T_eV, 'linear', 0);
     end
-    if Z>0
-        a(:,i) = 1e5*interpn(RecombinationData.Density,RecombinationData.Temp,RecombinationData.RateCoeff(:,:,Z),n,T,'linear',0);
+    % Recombination rate a for Z -> Z-1 is stored in RecombinationData.RateCoeff(:,:,Z)
+    if Z > 0
+        a(:,ii) = interpn(RecombinationData.Density, RecombinationData.Temp, ...
+                          squeeze(RecombinationData.RateCoeff(:,:,ii)), n_e, T_eV, 'linear', 0);
     end
 end
 
-A = zeros(Zmax+1,Zmax+1);
-conc = zeros(Zmax+1,nT);
-
-for i=1:nT
-    
-    A(1,1) = 1;%-S(i,1);
-    A(1,2) = 0;%a(i,2);
-    for j=2:Zmax
-        A(j,j-1) = S(i,j-1);
-        A(j,j) = -(S(i,j)+a(i,j));
-        A(j,j+1) = a(i,j+1);
+% --- Eq. (3)-(4) coronal equilibrium populations for each temperature ---
+conc = zeros(Zmax+1, nT);
+N_total = 1.0;
+for it = 1:nT
+    % Eq. (3): n_z = (prod_{i=0}^{z-1} S_i/alpha_{i+1}) * n_0
+    prod_terms = zeros(Zmax,1);
+    running_prod = 1;
+    for z = 1:Zmax
+        running_prod = running_prod * (S(it,z) / max(a(it,z+1), realmin));
+        prod_terms(z) = running_prod;
     end
-    A(Zmax+1,end-1) = S(i,Zmax-1);
-    A(Zmax+1,end) = -(S(i,Zmax)+a(i,Zmax));
-%     A(Zmax+1,:) = ones(1,Zmax);
-    
-    b(1) = 1 ;%-a(i,Zmax);
-    conc1 = A\b;
-end
-conc1 = abs(conc1);
-conc1 = conc1/sum(conc1);
 
-plot(0:Zmax,conc1,'--o','LineWidth',2)
-title({'Equilibrium Charge State Distribution','of O in 15eV 6e18m^{-3} electron Plasma','dt=1e-6s nP=1e5 nT=1e4'})
-xlabel('Charge State [#]') % x-axis label
-ylabel('Distribution Fraction') % y-axis label
-set(gca,'fontsize',16)
-axis([0 Zmax 0 0.8])
-% legend('neutral','1','2')
+    % Eq. (4): n_0 = N / (1 + sum_{z=1}^Z prod_{i=0}^{z-1} S_i/alpha_{i+1})
+    n0 = N_total / (1 + sum(prod_terms));
+    p = zeros(Zmax+1,1);
+    p(1) = n0;
+    for z = 1:Zmax
+        p(z+1) = prod_terms(z) * n0;
+    end
+
+    % Normalize fractional distribution
+    p = p / sum(p);
+    conc(:,it) = p;
+end
+
+% --- Plot results for last temperature (or all if vector) ---
+figure(1)
 hold on
-m = 184;
-T = 20;
-ti0 = 4;
-vTh = sqrt(2*ti0*1.602e-19/m/1.66e-27);
-n = 1e19;
-tion = 1/(n*interpn(IonizationData.Density,IonizationData.Temp,IonizationData.RateCoeff(:,:,i),n,T,'linear',0));
+colors = lines(nT);
+for it = 1:nT
+    plot(0:Zmax, conc(:,it), '-o', 'LineWidth', 2, 'Color', colors(it,:));
+end
+title({'Equilibrium Charge State Distribution','Oxygen (ADAS)'} ,'Interpreter','none')
+xlabel('Charge State [Z]')
+ylabel('Fraction')
+set(gca,'FontSize',14)
+axis([0 Zmax 0 1])
+legendStrings = arrayfun(@(x) sprintf('T=%.1f eV', T_eV(x)), 1:nT, 'UniformOutput', false);
+legend(legendStrings,'Location','best')
 
-mfp = vTh*tion
-% file = '/Users/tyounkin/Docs/elder/d3d/tungsten/tests/values_1e5p_1e4t_1en6';
-% fileID = fopen(file,'r');
-% formatSpec = '%f';
-% A = fscanf(fileID,formatSpec)
-% hold on
-% plot(0:1:19,A,':*','LineWidth',1)
-% legend('Equilibrium Values','GITR')
-% % x = ncread(file,'x');
-% % y = ncread(file,'y');
-% % z = ncread(file,'z');
-% % vx = ncread(file,'vx');
-% % vy = ncread(file,'vy');
-% % vz = ncread(file,'vz');
-% % charge = ncread(file,'charge');
-% % weight = ncread(file,'weight');
-% % sizeArray = size(x);
-% % nP = sizeArray(2);
-% % figure(2)
-% % 
-% % h1=histogram(charge)
-% % vals=h1.Values;
-% % vals = vals./sum(vals);
-% % figure(1)
-% % hold on
-% % plot(h1.BinEdges(1:end-1)+0.5,vals,'-o')
-% % legend('Equilibrium Values','GITR')
-% 
-% nP = 1e4;
-% nT = 1e4;
-% dt = 1e-6;
-% charge = zeros(1,nP);
-% Ss = zeros(1,nP);
-% aa = zeros(1,nP);
-% S = 1e-5*S;
-% a = 1e-5*a;
-% tic
-% for i=1:nT
-%     Ss = 0*Ss;
-%     aa = 0*aa;
-%     
-% Ss = interp1(linspace(0,Zmax-1,Zmax),S,charge,'linear',0);
-% tion = 1./(n*Ss);
-% Pion = exp(-dt./tion);
-% randIon = rand(1,nP);
-% whereIonize = find(randIon <= (1-Pion));
-% charge(whereIonize) = charge(whereIonize) + 1;
-% 
-% charge1 = find(charge > 0);
-% aa(charge1) = interp1(linspace(1,Zmax,Zmax),a,charge(charge1)+1,'linear',0);
-% 
-% trec = 1./(n*aa);
-% Prec = exp(-dt./trec);
-% randRec = rand(1,nP);
-% whereRec = find((randRec <= (1-Prec)) & (charge > 0));
-% charge(whereRec) = charge(whereRec) - 1;
-% 
-% end
-% toc
-% figure(100)
-% h1=histogram(charge)
-% vals=h1.Values;
-% vals = vals./sum(vals);
-% 
-% figure(1)
-% hold on
-% plot(h1.BinEdges(1:end-1)+0.5,vals,'-o')
+% --- Example: compute neutral ionization time and mean free path for chosen T ---
+% Use neutral ionization rate (Z=0 -> 1) stored in RateCoeff(:,:,1)
+% pick first temperature index for demonstration
+it0 = 1;
+S0 = S(it0,1);   % [m^3/s]
+if S0 > 0
+    tion = 1 / ( n_e * S0 );       % ionization time [s]
+else
+    tion = Inf;
+end
+
+% Thermal velocity of oxygen atoms (use atomic mass A=16)
+A_amu = 16;                         % oxygen atomic mass
+m_kg = A_amu * 1.66053906660e-27;   % kg
+ti0_eV = 4;                         % example neutral temperature (eV) -> set as needed
+vTh = sqrt(2 * ti0_eV * 1.602176634e-19 / m_kg);  % m/s
+
+mfp = vTh * tion;   % mean free path [m]
+fprintf('For T=%g eV: S0=%.3e m^3/s, tion=%.3e s, vTh=%.3e m/s, mfp=%.3e m\n', ...
+        T_eV(it0), S0, tion, vTh, mfp);
+
+function v = pick_var(ncfile, candidates)
+    info = ncinfo(ncfile);
+    names = {info.Variables.Name};
+    for i = 1:numel(candidates)
+        if any(strcmp(names, candidates{i}))
+            v = candidates{i};
+            return;
+        end
+    end
+    error('None of the candidate variables were found in %s.', ncfile);
+end
+
+function assert_in_range(x, name, grid)
+    gmin = min(grid);
+    gmax = max(grid);
+    assert(x >= gmin && x <= gmax, ...
+        '%s=%.6g is outside data range [%.6g, %.6g].', name, x, gmin, gmax);
+end

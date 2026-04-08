@@ -11,7 +11,7 @@ narray = [1e16, 1e17, 5e17, 1e18, 5e18, 1e19]
 Varray = [30, 160, 290, 420, 550, 680, 810, 940, 1070, 1200]
 
 
-file = 'RustBCA_NeonW.nc';
+file = '/Users/78k/ORNL Dropbox/Atul Kumar/work/STRIPE-Analysis/rustBCA_data/ftridyn_NeonW_80keV.nc';
 ncid = netcdf.open(file,'NC_NOWRITE');
 [dimname, nE] = netcdf.inqDim(ncid,0);
 [dimname, nA] = netcdf.inqDim(ncid,1);
@@ -78,16 +78,21 @@ A = readmatrix('Targets_Ne3+.txt','NumHeaderLines',1);
 
 angle_imp = A(:,10);
 
-nLoc = 21159;
+nLoc = size(A,1);
 nCharge = 3;
 yields = zeros(nLoc,nCharge);
+surfCounts = zeros(nLoc,nCharge);
 meanE = zeros(nLoc,nCharge);
 meanA = zeros(nLoc,nCharge);
 
 for i=1:nLoc
 for j=3
 filename = strcat('surface_C',string(j),'_loc_',string(i-1),'.nc');
+if ~isfile(filename)
+    continue
+end
 surfEDist = ncread(filename,'surfEDist');
+surfCounts(i,j) = sum(surfEDist(:));
 
 eff_yield = surfEDist.*Y0;
 eff_yield(isnan(eff_yield)) = 0;
@@ -96,9 +101,13 @@ eff_yield(isnan(eff_yield)) = 0;
 % h = pcolor(linspace(0,90,90),linspace(0,1000,1000),surfEDist')
 % h.EdgeColor = 'none';
 
-eff_yield = sum(eff_yield(:))./sum(surfEDist(:));
 %             yield = mean(Y0);
-            yields(i,j) = eff_yield;
+            denom = sum(surfEDist(:));
+            if denom > 0
+                yields(i,j) = sum(eff_yield(:))./denom;
+            else
+                yields(i,j) = 0;
+            end
             
 %             meanE(i,j) = mean(E);
 %             meanA(i,j) = mean(impact_angle);
@@ -115,9 +124,59 @@ plot(yields(:,3),'lineWidth',2)
 % title({'ne'})
 xlabel('location #') % x-axis label
 ylabel('Yield') % y-axis label
+title('IEADS Effective Yield (Ne3+, C3)')
 set(gca,'fontsize',16)
+grid on
 
-save('ieads_ITER_Ne3.mat')
+if exist('exportgraphics','file') == 2
+    exportgraphics(gcf,'ieads_yield_Ne3.png','Resolution',300);
+else
+    saveas(gcf,'ieads_yield_Ne3.png');
+end
+
+% Plot integrated surfEDist on the full geometry surface.
+if (exist('x1','var') == 0)
+    fid = fopen('gitrGeometryPointPlane3d.cfg');
+    tline = fgetl(fid);
+    tline = fgetl(fid);
+    for i=1:18
+        tline = fgetl(fid);
+        evalc(tline);
+    end
+    fclose(fid);
+end
+
+subset = 1:length(x1);
+X = [transpose(x1(subset)),transpose(x2(subset)),transpose(x3(subset))];
+Y = [transpose(y1(subset)),transpose(y2(subset)),transpose(y3(subset))];
+Z = [transpose(z1(subset)),transpose(z2(subset)),transpose(z3(subset))];
+
+if numel(x1) == nLoc + 1
+    surfGeomVals = [0; surfCounts(:,3)];
+elseif numel(x1) == nLoc
+    surfGeomVals = surfCounts(:,3);
+else
+    nGeom = numel(x1);
+    surfGeomVals = zeros(nGeom,1);
+    nCopy = min(nGeom,nLoc);
+    surfGeomVals(1:nCopy) = surfCounts(1:nCopy,3);
+end
+
+figure
+patch(transpose(X),transpose(Y),transpose(Z),surfGeomVals,'FaceAlpha',1,'EdgeAlpha',0.2)
+title('Integrated surfEDist on GITR Geometry (Ne3+, C3)')
+xlabel('X [m]')
+ylabel('Y [m]')
+zlabel('Z [m]')
+colorbar('eastoutside')
+set(gca,'fontsize',14)
+if exist('exportgraphics','file') == 2
+    exportgraphics(gcf,'surfEDist_geometry_Ne3.png','Resolution',300);
+else
+    saveas(gcf,'surfEDist_geometry_Ne3.png');
+end
+
+save('ieads_ITER_Ne3.mat','yields','surfCounts','nLoc','nCharge','ne','te','ti','vp','btot','br','bt','bz','angle_imp')
 return
 
 Dflux = vp.*ne.*tand(angle_imp);

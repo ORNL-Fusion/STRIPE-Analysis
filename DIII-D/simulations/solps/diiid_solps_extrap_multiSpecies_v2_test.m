@@ -9,7 +9,7 @@
 close all; clear all; clc;
 
 %% ------------------- Load SOLPS Data -------------------
-fileSOLPS = 'interpolated_values_200882_multi.nc';
+fileSOLPS = 'profiles_iter_wideGrid.nc';
 
 rS  = ncread(fileSOLPS, 'gridr');    % [nr]
 zS  = ncread(fileSOLPS, 'gridz');    % [nz]

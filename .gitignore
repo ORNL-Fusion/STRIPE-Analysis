@@ -25,6 +25,7 @@ west/**
 *.pkl
 *.npz
 *.npy
+*.dat
 
 # Ignore tar + zip archives
 *.tar
@@ -89,6 +90,17 @@ soledgeData/
 west/simulations/soledge_postprocess/
 west/simulations/curt_divertor/soledge-curt/
 
+# MPEX IR has existing repo
+#---------------------------------------
+# MPEX IR has existing repo
+protoMPEX/ProtoMPEX_Ops/
+protoMPEX/ProtoMPEX_Ops/**
+
+protoMPEX/simulations/solps_protoMPEX/SOLPS_Data_02082023/
+protoMPEX/simulations/solps_protoMPEX/SOLPS_Data_02082023/**
+
+protoMPEX/simulations/Impurity_transport/
+protoMPEX/simulations/Impurity_transport/**
 #---------------------------------------
 # Latex (build artifacts + sources)
 #---------------------------------------

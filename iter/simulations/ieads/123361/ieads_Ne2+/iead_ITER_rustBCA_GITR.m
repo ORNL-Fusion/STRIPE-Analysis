@@ -11,7 +11,7 @@ narray = [1e16, 1e17, 5e17, 1e18, 5e18, 1e19]
 Varray = [30, 160, 290, 420, 550, 680, 810, 940, 1070, 1200]
 
 
-file = 'RustBCA_NeonW.nc';
+file = '/Users/78k/ORNL Dropbox/Atul Kumar/work/STRIPE-Analysis/rustBCA_data/ftridyn_NeonW_80keV.nc';
 ncid = netcdf.open(file,'NC_NOWRITE');
 [dimname, nE] = netcdf.inqDim(ncid,0);
 [dimname, nA] = netcdf.inqDim(ncid,1);

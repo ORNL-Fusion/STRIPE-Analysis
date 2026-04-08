@@ -123,3 +123,19 @@ title('Charge Exchange Rate Coefficients vs Temperature');
 figure;
 plot(ne, CXRateCoeff(:,14,1));
 title('Charge Exchange Rate Coefficients vs Density');
+
+impurity_mass = 20; % amu
+impurity_charge = 0;
+impurity_kinetic_energy = 5; % eV
+
+impurity_velocity = sqrt(2*impurity_kinetic_energy*Q/impurity_mass/MI);
+
+electron_temperature = 35; %eV
+electron_density = 10^17; % m-3
+
+Coeff = interpn(IonizationData.Density,IonizationData.Temp,IonizationData.RateCoeff(:,:,impurity_charge+1),log10(electron_density),log10(electron_temperature),'linear',0);
+
+
+ionization_time = 1/(10^Coeff*electron_density); % in seconds
+
+mean_free_path = ionization_time*impurity_velocity % in m
