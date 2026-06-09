@@ -14,6 +14,7 @@ clear; clc; close all;
 
 zWindowMin       = 1.6;    % helicon window start [m]
 zWindowMax       = 1.9;    % helicon window end   [m]
+rWindow          = 0.06;   % radius for window heat-flux theta-z map [m]
 nAzimuthalSlices = 6;      % evenly-spaced z-slices across device
 m_ion            = 3.344e-27;  % ion mass [kg]: 1.672e-27 H, 3.344e-27 D
 
@@ -51,14 +52,14 @@ for iCase = 1:numel(caseName)
         end
 
         plotCase(ncFile, caseName{iCase}, caseTitle{iCase}, iterLabel, ...
-                 outDir, zWindowMin, zWindowMax, nAzimuthalSlices, m_ion);
+                 outDir, zWindowMin, zWindowMax, rWindow, nAzimuthalSlices, m_ion);
     end
 end
 
 %% ======================= local functions =======================
 
 function plotCase(ncFile, caseName, caseTitle, iterLabel, outDir, ...
-                  zWindowMin, zWindowMax, nAzimuthalSlices, m_ion)
+                  zWindowMin, zWindowMax, rWindow, nAzimuthalSlices, m_ion)
 
     makeFolder(outDir);
     tag = sprintf('%s  %s', caseTitle, iterLabel);   % e.g. "Window-limited it1"
@@ -154,7 +155,7 @@ function plotCase(ncFile, caseName, caseTitle, iterLabel, outDir, ...
     plotAzimuthalOverview(r, z, theta, Ne, Te, m_ion, nAzimuthalSlices, tag, outDir);
 
     %% Figure 4 — helicon window theta-z map
-    plotHeliconThetaZ(r, z, theta, Ne, Te, zWindowMin, zWindowMax, m_ion, tag, outDir);
+    plotHeliconThetaZ(r, z, theta, Ne, Te, zWindowMin, zWindowMax, rWindow, m_ion, tag, outDir);
 
     fprintf('Done: %s\n', outDir);
 end
@@ -235,8 +236,8 @@ end
 
 
 % ---------------------------------------------------------------
-function plotHeliconThetaZ(r, z, theta, Ne, Te, zMin, zMax, m_ion, tag, outDir)
-% Theta-z map of q_Bohm / Ne / Te at r = r_max (outer wall).
+function plotHeliconThetaZ(r, z, theta, Ne, Te, zMin, zMax, rTarget, m_ion, tag, outDir)
+% Theta-z map of q_Bohm / Ne / Te at the r-index nearest to rTarget.
 % x-axis: theta [0, 360 deg],  y-axis: z [m] in the helicon window.
 
     e_charge = 1.602e-19;
@@ -251,6 +252,13 @@ function plotHeliconThetaZ(r, z, theta, Ne, Te, zMin, zMax, m_ion, tag, outDir)
     thetaInd = thetaZeroIndex(theta);
     zLine    = squeeze(z(1, :, thetaInd));
 
+    % Find radial index nearest to rTarget.
+    rLine = squeeze(r(:, 1, thetaInd));
+    [~, rInd] = min(abs(rLine - rTarget));
+    rActual = rLine(rInd);
+    fprintf('Window theta-z: using r-index %d  (r = %.4g m, requested %.4g m).\n', ...
+            rInd, rActual, rTarget);
+
     winIdx = find(zLine >= zMin & zLine <= zMax);
     if isempty(winIdx)
         fprintf('Helicon window [%.2f, %.2f] m: no z-points — skipping theta-z plot.\n', zMin, zMax);
@@ -259,9 +267,9 @@ function plotHeliconThetaZ(r, z, theta, Ne, Te, zMin, zMax, m_ion, tag, outDir)
     zWin = zLine(winIdx);
     fprintf('Helicon window: %d z-points (%.4g – %.4g m).\n', numel(winIdx), zWin(1), zWin(end));
 
-    q_wall  = squeeze(q(end,  winIdx, sortIdx));
-    Ne_wall = squeeze(Ne(end, winIdx, sortIdx));
-    Te_wall = squeeze(Te(end, winIdx, sortIdx));
+    q_wall  = squeeze(q(rInd,  winIdx, sortIdx));
+    Ne_wall = squeeze(Ne(rInd, winIdx, sortIdx));
+    Te_wall = squeeze(Te(rInd, winIdx, sortIdx));
 
     [THETA, ZMAP] = meshgrid(thetaDeg, zWin);
 
@@ -289,8 +297,8 @@ function plotHeliconThetaZ(r, z, theta, Ne, Te, zMin, zMax, m_ion, tag, outDir)
     set(gca, 'XTick', 0:45:360);
     title('T_e');
 
-    sgtitle(sprintf('%s  |  Helicon window wall (z = %.1f–%.1f m,  r = r_{max})', ...
-            tag, zMin, zMax), 'Interpreter', 'none');
+    sgtitle(sprintf('%s  |  Helicon window (z = %.1f–%.1f m,  r = %.4g m)', ...
+            tag, zMin, zMax, rActual), 'Interpreter', 'none');
     saveFigure(fig, fullfile(outDir, 'helicon_window_thetaz'));
     fprintf('Wrote helicon_window_thetaz.png\n');
 end
