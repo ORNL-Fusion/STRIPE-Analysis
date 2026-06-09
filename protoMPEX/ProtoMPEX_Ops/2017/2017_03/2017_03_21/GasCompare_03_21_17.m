@@ -1,0 +1,54 @@
+% close all
+% clear all
+
+% mdsconnect('mpexserver')
+% 
+% shotlist = 13300 + [59,60];
+% shotlist = [12873, 12975, 13300 + [111] ];
+
+% Shots = [12873, 12975, 13300 + [66] ];
+
+
+% shotlist = 13400 + [33,34];
+
+address{1} = '\MPEX::TOP.MACHOPS1:PG3'; 
+nPG =  address{1}(end);
+
+if nPG >= 4
+    f = 10;
+else
+    f = 2;
+end
+f = 2;
+[PG,t] = my_mdsvalue_v2(shotlist,address(1));
+
+% B0 only calibration shots
+[PG0,t0] = my_mdsvalue_v2([13356,13357],address(1));
+PG0m = 0.5*(2*PG0{1} + 0*PG0{2});
+
+% Gas only calibration shots
+[PG1,t1] = my_mdsvalue_v2([13358],address(1));
+
+% Reference 250 ms pulse
+[PG0L,t0L] = my_mdsvalue_v2([12975],address(1));
+
+
+%%
+figure; hold on
+offset = 0*ones(size(shotlist));
+offset([1:2]) = -0*0.5;
+offset([3]) = -0;
+
+for s = 1 :length(shotlist)
+h(s) = plot(t{s}(1:length(PG{s})),(PG{s}-1*PG0m)*f + offset(s));
+end
+set(h(1:2),'LineWidth',2)
+% Long reference pulse
+plot(t0L{1}(1:length(PG0L{1})),(PG0L{1}-1*mean(PG0L{1}(1:200)))*f + offset(1),'g','LineWidth',2)
+%plot(t0L{1}(1:length(PG0L{1})),(PG0L{1}-1*PG0m)*f,'g','LineWidth',2)
+
+legend(h,{num2str(shotlist')},'location','NorthWest')
+ylabel('mTorr')
+ylim([-0.5,5])
+xlim([3.5,5.5])
+grid on

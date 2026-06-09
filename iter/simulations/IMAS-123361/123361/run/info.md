@@ -1,0 +1,29 @@
+---
+path: /home/nikita/Documents/runs_database/ITER/3.2.0/coupled/iter116000_5/C_Ne=1.2%_D=2_3cm_geom5_coupled/watch_20.11.2024_11_36
+tokamak: ITER
+version: 3.2.0
+Composition: D+He+Ne
+resco_D: -9.36e+04
+resco_He: -1.76e+01
+resco_Ne: -2.08e+02
+reshe: 5.66e+00
+reshi: 1.11e-01
+nD_sep: 3.85e+00
+nHe_sep: 1.03e-02
+nNe_sep: 5.23e-02
+nD/ne_sep: 89.41
+nHe/ne_sep: 0.24
+nNe/ne_sep: 1.21
+nD/n_main_sep: 100.00
+nHe/n_main_sep: 0.27
+nNe/n_main_sep: 1.36
+te_sep: 173.73
+ti_sep: 311.88
+te_ot: 23.50
+ne_ot: 2.34e+02
+q_ot: 1.82
+Qrad: 46.97
+L_SOL: 17.87
+L_CORE: 15.32
+P_heat: 100.01
+---

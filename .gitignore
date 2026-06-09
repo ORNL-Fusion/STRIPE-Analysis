@@ -1,166 +1,55 @@
 ###############################################################################
-# FRESH CLEAN GITIGNORE — STRIPE-Analysis
+# STRIPE-Analysis .gitignore
+# Whitelist approach: ignore everything, then explicitly allow code/scripts.
 ###############################################################################
-# --- DIII-D ---
-DIII-D/**
-!DIII-D/simulations/
-!DIII-D/simulations/**/*
 
-# --- iter ---
-iter/**
-!iter/simulations/
-!iter/simulations/**/*
+# Ignore everything by default
+*
 
-# --- west ---
-west/**
-!west/simulations/
-!west/simulations/**/*
-#---------------------------------------
-# Simulation / Data (large files)
-#---------------------------------------
-*.mat
-*.nc
-*.csv
-*.txt
-*.pkl
-*.npz
-*.npy
-*.dat
+# Un-ignore directories so git can recurse into subdirectories
+!*/
 
-# Ignore tar + zip archives
-*.tar
-*.tar.gz
-*.tgz
-*.zip
-# ===== Large simulation / CAD / dataset files =====
-# HDF5, matrices, etc.
-*.h5
-radiation_matrix
+# ----- Source code and scripts -----
+!*.m
+!*.py
+!*.sh
+!*.bash
+!*.zsh
+!*.cpp
+!*.c
+!*.h
+!*.hpp
+!*.f90
+!*.F90
+!*.f
+!*.F
 
-# nohup logs
-nohup.out
+# ----- Simulation input / configuration -----
+!*.in
+!*.cmake
+!CMakeLists.txt
+!*.json
+!*.yaml
+!*.yml
+!*.toml
 
-# CAD (SolidWorks)
-*.SLDPRT
-*.SLDASM
+# ----- Documentation -----
+!*.md
+!*.rst
+!*.tex
 
-# COMSOL / geometry / scenario zips etc.
-*.stp
-*.zip
-*.msh
+# ----- Git infrastructure -----
+!.gitignore
+!.gitattributes
+!.gitmodules
 
-# ORNL email COMSOL–GITR datasets (explicit paths just in case)
-iter/simulations/Expt_data/ORNL_Email_20230518_1/
-west/simulations/soledge_postprocess/sim_O_4mw_main/run_dir/
-DIII-D/simulations/HeliconCAD/
-iter/simulations/ieads/old/Ne_2prcnt/
-iter/simulations/ieads/old/Ne_5prcnt/
-#---------------------------------------
-# CAD / Geometry files
-#---------------------------------------
-*.stp
-*.stl
-*.SLDPRT
-*.SLDASM
-
-# CAD directories
-DIII-D/simulations/DIII-D helicon CAD/
-
-# ITER geometry & COMSOL-GITR inputs
-iter/simulations/Expt_data/ITER_geom.msh
-iter/simulations/Expt_data/ORNL_Email_20230518_1/v1p1_COMSOL-GITR_Inputs_PartI_Geometries/
-#---------------------------------------
-# COMSOL
-#---------------------------------------
-*.mph
-*.mph.lock
-
-#---------------------------------------
-# GITR / SOLPS / equilibrium
-#---------------------------------------
-g*
-b2f*
-gfile
-
-#---------------------------------------
-# SOLEDGE
-#---------------------------------------
-soledge_postprocess/
-soledgeData/
-west/simulations/soledge_postprocess/
+# ----- Embedded repos (kept as independent git repos, not submodules) -----
+iter/simulations/geometry/EMC3-EIRENE/BOUNDARY/moose/
+protoMPEX/simulations/gitr_PostProcessing_ProtoMPEX/
 west/simulations/curt_divertor/soledge-curt/
-
-# MPEX IR has existing repo
-#---------------------------------------
-# MPEX IR has existing repo
-protoMPEX/ProtoMPEX_Ops/
-protoMPEX/ProtoMPEX_Ops/**
-
-protoMPEX/simulations/solps_protoMPEX/SOLPS_Data_02082023/
-protoMPEX/simulations/solps_protoMPEX/SOLPS_Data_02082023/**
-
-protoMPEX/simulations/Impurity_transport/
-protoMPEX/simulations/Impurity_transport/**
-#---------------------------------------
-# Latex (build artifacts + sources)
-#---------------------------------------
-*.aux
-*.bbl
-*.bcf
-*.blg
-*.out
-*.log
-*.toc
-*.lot
-*.lof
-*.fls
-*.fdb_latexmk
-*.synctex.gz
-*.tex
-*.cls
-*.sty
-#---------------------------------------
-# Documents
-#---------------------------------------
-*.pdf
-*.doc
-*.docx
-*.ppt
-*.pptx
-*.xls
-*.xlsx
-*.rtf
-#---------------------------------------
-# Images
-#---------------------------------------
-*.png
-*.jpg
-*.jpeg
-*.svg
-*.fig
-
-#---------------------------------------
-# Python
-#---------------------------------------
-__pycache__/
-*.pyc
-*.pyo
-.ipynb_checkpoints/
-
-#---------------------------------------
-# MATLAB autosaves
-#---------------------------------------
-*.asv
-*.m~
-
-#---------------------------------------
-# OS / Editor
-#---------------------------------------
-.DS_Store
-Thumbs.db
-.vscode/
-.idea/
+west/simulations/gitrProcessing_WEST_CURT/soledge-main/
+west/simulations/gitrProcessing_WestCmod/
 
 ###############################################################################
-# END CLEAN GITIGNORE
+# End of .gitignore
 ###############################################################################

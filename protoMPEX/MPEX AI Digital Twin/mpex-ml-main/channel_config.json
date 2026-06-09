@@ -1,0 +1,47 @@
+{
+    "ANALYZED.POWER" : {
+        "PWR_28"   : {"operations" : ["flatten"]},
+        "PWR_HEL"  : {"operations" : ["flatten"]},
+        "PWR_ICRF" : {"operations" : ["flatten"]},
+        "timebase" : {
+            "name"       : "TIME",
+            "operations" : ["flatten"]
+        }
+    },
+    "ANALYZED.BFIELD" : {
+        "B_TOTAL"  : {"operations" : null},
+        "position" : {
+            "name"       : "Z",
+            "operations" : ["flatten"]
+        },
+        "timebase" : {
+            "name"       : "T",
+            "operations" : ["flatten"]
+        }
+    },
+    "ANALYZED.GAS" : {
+        "PG2_PRES" : {"operations" : ["flatten"]},
+        "PG3_PRES" : {"operations" : ["flatten"]},
+        "PG4_PRES" : {"operations" : ["flatten"]},
+        "timebase" : {
+            "name"       : "TIME",
+            "operations" : ["flatten"]
+        }
+    },
+    "ANALYZED.DLP" : {
+        "KTE"      : {"operations" : ["flatten"]},
+        "NE"       : {"operations" : ["flatten"]},
+        "timebase" : {
+            "name" : "TIME",
+            "operations" : ["flatten"]
+        }
+    },
+    "ANALYZED.IR" : {
+        "HEAT_PEAK"    : {"operations" : ["flatten"]},
+        "HEAT_PEAK_CE" : {"operations" : ["flatten"]},
+        "timebase"     : {
+            "name"       : "T",
+            "operations" : ["transpose", "flatten"]
+        }
+    }
+}

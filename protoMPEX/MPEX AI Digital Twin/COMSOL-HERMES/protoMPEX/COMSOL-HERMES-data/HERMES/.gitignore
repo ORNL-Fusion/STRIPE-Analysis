@@ -1,0 +1,33 @@
+# macOS metadata
+.DS_Store
+Icon
+
+# Data files
+*.nc
+*.csv
+*.tar
+*.tar.gz
+*.h5
+*.hdf5
+*.mat
+
+# Images
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.tiff
+*.tif
+*.svg
+
+# MATLAB figures
+*.fig
+
+# Presentations / documents
+*.pptx
+*.docx
+*.pdf
+
+# Python cache
+__pycache__/
+*.pyc

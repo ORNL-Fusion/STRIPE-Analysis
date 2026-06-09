@@ -5,7 +5,7 @@
 close all; clear; clc;
 
 %% ------------------------ User inputs ------------------------
-file = 'ftridyn_DonW.nc';                    % RustBCA NetCDF file for D on W
+file = 'ftridyn_DonC.nc';                    % RustBCA NetCDF file for D on W
 out_csv = 'D_on_W_EXPT0_plus_EcksteinAngleFit.csv';
 
 % Choose angles (deg) to output in table (must include 0)
