@@ -4,8 +4,12 @@
 % Outputs (written to plots/<case>/<iteration>/):
 %   overview_rz.png           — Ne and Te in the theta=0 R-Z plane
 %   profiles_1d.png           — radial and axial 1D profiles at theta=0
-%   azimuthal_overview.png    — Ne / Te / q_Bohm in azimuthal planes across device
-%   helicon_window_thetaz.png — q_Bohm / Ne / Te as theta-z map at the wall
+%   azimuthal_overview.png    — Ne / Te / q in azimuthal planes across device
+%   helicon_window_thetaz.png — q / Ne / Te as theta-z map at the wall
+%
+% Heat flux formula (Bohm heat flux):
+%   q = gamma * Ne * e*Te * sqrt(e*Te/m_i)
+%   gamma = sheath heat transmission coefficient (default 7)
 %   <case>_<iter>_xyz_ne_te.csv
 
 clear; clc; close all;
@@ -17,6 +21,7 @@ zWindowMax       = 1.9;    % helicon window end   [m]
 rWindow          = 0.06;   % radius for window heat-flux theta-z map [m]
 nAzimuthalSlices = 6;      % evenly-spaced z-slices across device
 m_ion            = 3.344e-27;  % ion mass [kg]: 1.672e-27 H, 3.344e-27 D
+gamma_sheath     = 7.0;    % sheath heat transmission coefficient
 
 windowLabels = {'it0'; 'it1'; 'it2'};
 windowFiles  = {
@@ -52,14 +57,14 @@ for iCase = 1:numel(caseName)
         end
 
         plotCase(ncFile, caseName{iCase}, caseTitle{iCase}, iterLabel, ...
-                 outDir, zWindowMin, zWindowMax, rWindow, nAzimuthalSlices, m_ion);
+                 outDir, zWindowMin, zWindowMax, rWindow, nAzimuthalSlices, m_ion, gamma_sheath);
     end
 end
 
 %% ======================= local functions =======================
 
 function plotCase(ncFile, caseName, caseTitle, iterLabel, outDir, ...
-                  zWindowMin, zWindowMax, rWindow, nAzimuthalSlices, m_ion)
+                  zWindowMin, zWindowMax, rWindow, nAzimuthalSlices, m_ion, gamma_sheath)
 
     makeFolder(outDir);
     tag = sprintf('%s  %s', caseTitle, iterLabel);   % e.g. "Window-limited it1"
@@ -152,25 +157,25 @@ function plotCase(ncFile, caseName, caseTitle, iterLabel, outDir, ...
     saveFigure(fig, fullfile(outDir, 'profiles_1d'));
 
     %% Figure 3 — azimuthal overview across device
-    plotAzimuthalOverview(r, z, theta, Ne, Te, m_ion, nAzimuthalSlices, tag, outDir);
+    plotAzimuthalOverview(r, z, theta, Ne, Te, m_ion, gamma_sheath, nAzimuthalSlices, tag, outDir);
 
     %% Figure 4 — helicon window theta-z map
-    plotHeliconThetaZ(r, z, theta, Ne, Te, zWindowMin, zWindowMax, rWindow, m_ion, tag, outDir);
+    plotHeliconThetaZ(r, z, theta, Ne, Te, zWindowMin, zWindowMax, rWindow, m_ion, gamma_sheath, tag, outDir);
 
     fprintf('Done: %s\n', outDir);
 end
 
 
 % ---------------------------------------------------------------
-function plotAzimuthalOverview(r, z, theta, Ne, Te, m_ion, nSlices, tag, outDir)
+function plotAzimuthalOverview(r, z, theta, Ne, Te, m_ion, gamma_sheath, nSlices, tag, outDir)
 % 3-row x nSlices-column azimuthal (X-Y) contour maps.
-% Row 1: Ne,  Row 2: Te,  Row 3: q_Bohm.
+% Row 1: Ne,  Row 2: Te,  Row 3: q.
 % Each row shares one global color scale. Azimuthal ring is closed at 360 deg.
+% Heat flux: q = gamma * Ne * e*Te * sqrt(e*Te/m_i)  [Bohm heat flux]
 
     e_charge = 1.602e-19;
-    gamma    = 3.0;
-    kTe = Te * e_charge;
-    q   = gamma .* Ne .* kTe .* sqrt(kTe ./ m_ion);
+    c_s = sqrt(Te .* e_charge ./ m_ion);
+    q   = gamma_sheath .* Ne .* (Te .* e_charge) .* c_s;
 
     X = r .* cos(theta);
     Y = r .* sin(theta);
@@ -201,7 +206,7 @@ function plotAzimuthalOverview(r, z, theta, Ne, Te, m_ion, nSlices, tag, outDir)
 
     varData  = {Ns,      Ts,      Qs};
     varLims  = {limNe,   limTe,   limQ};
-    varLabel = {'N_e [m^{-3}]', 'T_e [eV]', 'q_{Bohm} [W m^{-2}]'};
+    varLabel = {'N_e [m^{-3}]', 'T_e [eV]', 'q [W m^{-2}]'};
     varCmap  = {'parula', 'parula', 'hot'};
 
     fig = figure('Color', 'w', 'Position', [50 50 max(1200, 240*nSlices+100) 870]);
@@ -236,14 +241,14 @@ end
 
 
 % ---------------------------------------------------------------
-function plotHeliconThetaZ(r, z, theta, Ne, Te, zMin, zMax, rTarget, m_ion, tag, outDir)
-% Theta-z map of q_Bohm / Ne / Te at the r-index nearest to rTarget.
+function plotHeliconThetaZ(r, z, theta, Ne, Te, zMin, zMax, rTarget, m_ion, gamma_sheath, tag, outDir)
+% Theta-z map of q / Ne / Te at the r-index nearest to rTarget.
 % x-axis: theta [0, 360 deg],  y-axis: z [m] in the helicon window.
+% Heat flux: q = gamma * Ne * e*Te * sqrt(e*Te/m_i)  [Bohm heat flux]
 
     e_charge = 1.602e-19;
-    gamma    = 3.0;
-    kTe = Te * e_charge;
-    q   = gamma .* Ne .* kTe .* sqrt(kTe ./ m_ion);
+    c_s = sqrt(Te .* e_charge ./ m_ion);
+    q   = gamma_sheath .* Ne .* (Te .* e_charge) .* c_s;
 
     thetaRaw = squeeze(theta(1, 1, :));
     thetaDeg = mod(thetaRaw * (180/pi), 360);
@@ -278,10 +283,10 @@ function plotHeliconThetaZ(r, z, theta, Ne, Te, zMin, zMax, rTarget, m_ion, tag,
     subplot(1, 3, 1);
     contourf(THETA, ZMAP, q_wall, 50, 'LineStyle', 'none');
     colormap(gca, hot);
-    cb = colorbar; cb.Label.String = 'q_{Bohm} [W m^{-2}]';
+    cb = colorbar; cb.Label.String = 'q [W m^{-2}]';
     xlabel('\theta [deg]'); ylabel('z [m]');
     set(gca, 'XTick', 0:45:360);
-    title('Heat flux q_{Bohm}');
+    title('Heat flux q');
 
     subplot(1, 3, 2);
     contourf(THETA, ZMAP, Ne_wall, 50, 'LineStyle', 'none');
